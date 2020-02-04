@@ -6,7 +6,7 @@
 
 [CSDN](https://blog.csdn.net/wyansai)
 [GitHub](https://github.com/wyanlord)
-[Get Started](https://wyanlord.github.io)
+[Get Started](README)
 
 <!-- 背景色 -->
 ![color](#ffffff)
