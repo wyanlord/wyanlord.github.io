@@ -1,12 +1,12 @@
-![logo](_media/icon.svg)
-# 我的文档网站
-## 个人文档网站
-> 一个神奇的文档网站生成巩固
+![logo](images/logo.jpg)
 
-* Simple and lightweight (~12kb gzipped)
-* Multiple themes
-* Not build static html files
+# [我的笔记](/)
 
-[GitHub](https://github.com/docsifyjs/docsify/)
-[Get Started](#quick-start)
-[Get Started](#quick-start)
+> 一个神奇的笔记博客
+
+[CSDN](https://blog.csdn.net/wyansai)
+[GitHub](https://github.com/wyanlord)
+[Get Started](https://wyanlord.github.io)
+
+<!-- 背景色 -->
+![color](#ffffff)

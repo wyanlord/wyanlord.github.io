@@ -1,12 +1,11 @@
-* 根目录
-  * [home1](home1)
-  * [home2](home2)
-  * [guide](guide)
+* 编程语言
+  * [cpp](cpp/)
+  * [php](php/)
+  * [golang](golang/)
+  * [javascript](javascript/)
 
-* bar目录
-  * [bar](bar/)
-  * [a文件](bar/a)
-  * [b文件](bar/b)
-
-* foo目录
-  * [one](foo/one)
+* Linux系统
+  * [basic](linux/basic/)
+  * [ubuntu](linux/ubuntu/)
+  * [centos](linux/centos/)
+  * [alpine](linux/alpine/)
