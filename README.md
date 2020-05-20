@@ -2,4 +2,4 @@
 
 ## 导读
 
-[笔记入口]()
+[笔记入口](https://wyanlord.github.io)
