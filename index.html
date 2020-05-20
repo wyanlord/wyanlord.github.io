@@ -1,72 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>王严的笔记博客</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-  <meta name="description" content="王严的笔记博客">
-  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-  <link rel="stylesheet" href="//unpkg.com/docsify/lib/themes/vue.css">
-  <link rel="stylesheet" href="//unpkg.com/gitalk/dist/gitalk.css">
+    <meta charset="UTF-8">
+    <title>王严の笔记</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="王严の笔记">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="//unpkg.com/docsify/lib/themes/vue.css">
+    <link rel="stylesheet" href="//unpkg.com/gitalk/dist/gitalk.css">
 
 </head>
 <body>
-  	<div id="app"></div>
-  	<script>
-	    window.$docsify = {
-      	name: 'My Notes',
-      	repo: 'wyanlord/wyanlord.github.io',
-      	loadSidebar: true,
-      	loadNavbar: true,
-      	coverpage: true,
-      	onlyCover: true,
-      	subMaxLevel: 3,
+<div id="app"></div>
+<script>
+    window.$docsify = {
+        name: '程序员笔记',
+        repo: 'wyanlord/wyanlord.github.io',
+        loadSidebar: true,
+        loadNavbar: false,
+        coverpage: true,
+        onlyCover: true,
+        subMaxLevel: 2,
         formatUpdated: '{YYYY}-{MM}-{DD}',
         plugins: [
-          function (hook, vm) {
-            hook.beforeEach(function (html) {
-              return html + '<hr/>' + '上次更新：{docsify-updated} '
-            })
-          },
-          function (hook, vm) {
-            hook.mounted(function() {
-              var div = Docsify.dom.create('div')
-              div.id = 'gitalk-container'
-              var main = Docsify.dom.getNode('#main')
-              div.style = `width: ${main.clientWidth}px; margin: 0 auto 20px;`
-              Docsify.dom.appendTo(Docsify.dom.find('.content'), div)
-            })
+            function (hook, vm) {
+                hook.beforeEach(function (html) {
+                    return html + '<hr/>' + '上次更新：{docsify-updated}'
+                })
+            },
+            function (hook, vm) {
+                hook.mounted(function () {
+                    var div = Docsify.dom.create('div')
+                    div.id = 'gitalk-container'
+                    var main = Docsify.dom.getNode('#main')
+                    div.style = `width: ${main.clientWidth}px; margin: 0 auto 20px;`
+                    Docsify.dom.appendTo(Docsify.dom.find('.content'), div)
+                })
 
-            hook.doneEach(function() {
-              var el = document.getElementById('gitalk-container')
-              while(el.hasChildNodes()) el.removeChild(el.firstChild)
-              gitalk.render('gitalk-container')
-            })
-          }
+                hook.doneEach(function () {
+                    var el = document.getElementById('gitalk-container')
+                    while (el.hasChildNodes()) el.removeChild(el.firstChild)
+                    gitalk.render('gitalk-container')
+                })
+            }
         ],
         // 完整配置参数
         search: {
-          maxAge: 86400000,
-          paths: 'auto',
-          placeholder: '查询',
-          noData: '没有数据',
-          depth: 3
+            maxAge: 86400000,
+            paths: 'auto',
+            placeholder: '查询',
+            noData: '没有数据',
+            depth: 3
         }
-	    }
-  	</script>
-  	<script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
-    <script src="//unpkg.com/docsify/lib/plugins/search.js"></script>
-    <script src="//unpkg.com/docsify/lib/plugins/gitalk.min.js"></script>
-    <script src="//unpkg.com/gitalk/dist/gitalk.min.js"></script>
-    <script>
-      var gitalk = new Gitalk({
+    }
+</script>
+<script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
+<script src="//unpkg.com/docsify/lib/plugins/search.js"></script>
+<script src="//unpkg.com/docsify/lib/plugins/gitalk.min.js"></script>
+<script src="//unpkg.com/gitalk/dist/gitalk.min.js"></script>
+<script>
+    var gitalk = new Gitalk({
         clientID: '595721896b68637c0a09',
         clientSecret: 'bfcb949e21e97ee56b527eb78d7671f356a1634f',
         repo: 'wyanlord.github.io',
         owner: 'wyanlord',
         admin: ['wyanlord'],
         title: location.href
-      });
-    </script>
+    });
+</script>
 </body>
 </html>
