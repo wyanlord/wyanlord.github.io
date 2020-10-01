@@ -3,7 +3,11 @@
 
 * Java语言
   * [Java导读](/lang/java/README.md)
-    
+  * [Java安装指南](/lang/java/Java安装指南.md)
+  * [Json序列化](/lang/java/Json序列化.md)
+  * [Redis配置应用](lang/java/Redis配置应用.md)
+  * [Junit单元测试](lang/java/Junit单元测试.md)
+  
 * Rust语言
   * [Rust导读](/lang/rust/README.md)
   
