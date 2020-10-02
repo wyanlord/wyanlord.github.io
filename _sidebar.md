@@ -1,19 +1,18 @@
 * 首页
   * [笔记说明](/README.md)
-
 * Java语言
   * [Java导读](/lang/java/README.md)
   * [Java安装指南](/lang/java/Java安装指南.md)
   * [Json序列化](/lang/java/Json序列化.md)
   * [Redis配置应用](lang/java/Redis配置应用.md)
   * [Junit单元测试](lang/java/Junit单元测试.md)
-  
 * Rust语言
   * [Rust导读](/lang/rust/README.md)
-  
+* Cpp语言
+  * [openssl加密](lang/cpp/openssl加密.md)
+  * [clion开发qt](lang/cpp/clion开发qt.md)
 * Golang语言
   * [Golang导读](/lang/golang/README.md)
-  
 * Linux系统
   * [Linux基本操作](/linux/README.md)
   * [CentOs安装](/linux/centos-install.md)
