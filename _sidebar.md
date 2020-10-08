@@ -9,6 +9,7 @@
 * Rust语言
   * [Rust导读](/lang/rust/README.md)
 * Cpp语言
+  * [cmake语法](lang/cpp/cmake语法.md)
   * [openssl加密](lang/cpp/openssl加密.md)
   * [clion开发qt](lang/cpp/clion开发qt.md)
 * Golang语言

@@ -7,6 +7,13 @@ cmake_minimum_required(VERSION 3.13)
 project(qtdemo1)
 
 set(CMAKE_CXX_STANDARD 14)
+    
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+    
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -14,7 +21,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_PREFIX_PATH D:/AppData/Qt/5.8/mingw53_32)
+set(CMAKE_PREFIX_PATH D:/AppData/Qt/Qt5.14.2/5.14.2/mingw73_32)
 
 set(CMAKE_BUILD_TYPE Release)
 
@@ -22,11 +29,10 @@ find_package(Qt5Core)
 find_package(Qt5Widgets)
 find_package(Qt5Gui)
 
-set(UI_FILES)
-set(RC_FILES)
-set(QRC_FILES)
-
-set(SOURCE_FILES main.cpp mainwindow.cpp mainwindow.h)
+file(GLOB UI_FILES *.ui)
+file(GLOB RC_FILES *.rc)
+file(GLOB QRC_FILES *.qrc)
+aux_source_directory(. SOURCE_FILES)
 
 add_executable(qtdemo1 WIN32 ${SOURCE_FILES} ${UI_FILES} ${RC_FILES} ${QRC_FILES})
 
