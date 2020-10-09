@@ -39,7 +39,7 @@ set(OPT_DIR D:/AppData/Qt/Qt5.14.2/Tools/mingw730_32/opt)
 include_directories(${OPT_DIR}/include)
 link_directories(${OPT_DIR}/lib)
 
-set(LIBS iconv.dll charset.dll)
+set(LIBS iconv charset)
 
 aux_source_directory(. SOURCE_FILES)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
