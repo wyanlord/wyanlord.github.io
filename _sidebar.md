@@ -13,6 +13,8 @@
   * [openssl加密](lang/cpp/openssl加密.md)
   * [curl用法](lang/cpp/curl用法.md)
   * [iconv用法](lang/cpp/iconv用法.md)
+  * [mysql用法](lang/cpp/mysql用法.md)
+  * [hiredis用法](lang/cpp/hiredis用法.md)
   * [clion开发qt](lang/cpp/clion开发qt.md)
 * Golang语言
   * [Golang导读](/lang/golang/README.md)
