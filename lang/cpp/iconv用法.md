@@ -15,7 +15,7 @@ const char *orig_installdir = "/usr/local/libiconv";
 将默认的mingw32-make.exe拷贝一份为make.exe
 
 ```
-make && make install
+./configure && make && make install
 ```
 
 在Git目录下就能找到编译好的文件
@@ -34,7 +34,7 @@ project(demo1)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(OPT_DIR D:/AppData/Qt/Qt5.14.2/Tools/mingw730_32/opt)
+set(OPT_DIR C:/Qt/Qt5.14.2/Tools/mingw730_64/opt)
 
 include_directories(${OPT_DIR}/include)
 link_directories(${OPT_DIR}/lib)

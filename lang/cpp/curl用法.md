@@ -37,7 +37,7 @@ project(demo1)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(OPT_DIR D:/AppData/Qt/Qt5.14.2/Tools/mingw730_32/opt)
+set(OPT_DIR C:/Qt/Qt5.14.2/Tools/mingw730_64/opt)
 
 add_definitions(-DUSE_OPENSSL)
 
