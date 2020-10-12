@@ -34,7 +34,7 @@ file(GLOB RC_FILES *.rc)
 file(GLOB QRC_FILES *.qrc)
 aux_source_directory(. SOURCE_FILES)
 
-add_executable(qtdemo1 WIN32 ${SOURCE_FILES} ${UI_FILES} ${RC_FILES} ${QRC_FILES})
+add_executable(qtdemo1 WIN32 ${UI_FILES} ${RC_FILES} ${QRC_FILES} ${SOURCE_FILES})
 
 target_link_libraries(qtdemo1 Qt5::Widgets Qt5::Core Qt5::Gui)
 ```

@@ -142,14 +142,21 @@ char *aes_encrypt(const char *in, const char *key) {
         return NULL;
     }
 
-    unsigned char iv[AES_BLOCK_SIZE];
-    memcpy(iv, "0123456789abcdef", 16);
+    int len = strlen(in), padding = AES_BLOCK_SIZE - len % AES_BLOCK_SIZE;
 
-    int len = strlen(in), out_len = len + AES_BLOCK_SIZE;
-    char *out = (char *) malloc(out_len);
-    memset(out, 0, out_len);
+    char inData[len + padding];
+    memcpy(inData, in, len);
+    for(int i = 0; i < padding; i++) {
+        inData[len + i] = padding;
+    }
 
-    AES_cbc_encrypt((unsigned char *) in, (unsigned char *) out, len, &aes, iv, AES_ENCRYPT);
+    char *out = (char *) malloc(len + padding + 1);
+    memset(out, 0, len + padding + 1);
+
+    for (int j = 0; j < len + padding; j += AES_BLOCK_SIZE) {
+        AES_ecb_encrypt((unsigned char *) inData + j, (unsigned char *) out + j, &aes, AES_ENCRYPT);
+    }
+
     return out;
 }
 
@@ -159,14 +166,16 @@ char *aes_decrypt(const char *in, const char *key) {
         return NULL;
     }
 
-    unsigned char iv[AES_BLOCK_SIZE];
-    memcpy(iv, "0123456789abcdef", 16);
-
     int len = strlen(in);
     char *out = (char *) malloc(len + 1);
     memset(out, 0, len + 1);
 
-    AES_cbc_encrypt((unsigned char *) in, (unsigned char *) out, len, &aes, iv, AES_DECRYPT);
+    for(int j = 0; j < len; j += AES_BLOCK_SIZE) {
+        AES_ecb_encrypt((unsigned char *) in + j, (unsigned char *) out + j, &aes, AES_DECRYPT);
+    }
+
+    *(out + len - *(out + len - 1)) = '\0';
+
     return out;
 }
 ```
