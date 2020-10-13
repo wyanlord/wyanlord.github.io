@@ -1,7 +1,7 @@
 ### 一、Java和maven下载地址
 
 ```
-https://github.com/frekele/oracle-java/releases
+https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/tag/jdk8u265-b01
 http://maven.apache.org/download.cgi
 ```
 

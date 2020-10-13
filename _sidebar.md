@@ -16,6 +16,7 @@
   * [mysql用法](lang/cpp/mysql用法.md)
   * [hiredis用法](lang/cpp/hiredis用法.md)
   * [clion开发qt](lang/cpp/clion开发qt.md)
+  * [10大排序](lang/cpp/10大排序算法.md)
 * Golang语言
   * [Golang导读](/lang/golang/README.md)
 * Linux系统
