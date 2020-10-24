@@ -23,3 +23,4 @@
 * Linux系统
   * [Linux基本操作](/linux/README.md)
   * [CentOs安装](/linux/centos-install.md)
+  * [ubuntu-install](/linux/ubuntu-install.md)
