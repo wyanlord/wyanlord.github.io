@@ -59,8 +59,8 @@ Drop down terminal
 
 ```shell
 sudo apt-get install gtk2-engines-murrine gtk2-engines-pixbuf
-git clone https://github.com/vinceliuice/Sierra-gtk-theme # ./install.sh 或 /use/share/themes
-sudo git clone https://github.com/USBA/Cupertino-iCons /usr/share/icons/Cupertino
+https://github.com/vinceliuice/Mojave-gtk-theme
+https://github.com/vinceliuice/McMojave-circle
 ```
 
 5、安装deepin-wine
