@@ -59,8 +59,9 @@ Drop down terminal
 
 ```shell
 sudo apt-get install gtk2-engines-murrine gtk2-engines-pixbuf
-https://github.com/vinceliuice/Mojave-gtk-theme
-https://github.com/vinceliuice/McMojave-circle
+#https://github.com/vinceliuice/Mojave-gtk-theme
+#https://github.com/vinceliuice/McMojave-circle
+https://www.pling.com/s/Gnome
 ```
 
 5、安装deepin-wine
@@ -201,6 +202,12 @@ mv vim-monokai/colors ~/.vim/
 git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
 ```
 
+```shell
+# 安装字体
+git clone https://github.com/powerline/fonts ~/.vim/bundle/vim-airline-fonts
+./install.sh
+```
+
 ```xml
 set nocompatible
 filetype off   
@@ -222,12 +229,24 @@ filetype plugin indent on
 
 syntax enable
 colorscheme monokai
+set t_Co=256
 set laststatus=2
+if !exists('g:airline_symbols')
+	let g:airline_symbols = {}
+endif
+let g:airline_symbols.space = "\ua0"
+let g:airline_exclude_filename = []
+let g:Powerline_symbols='fancy'
+let g:airline_powerline_fonts=0
+let Powerline_symbols='fancy'
+let g:bufferline_echo=0
 let g:airline_powerline_fonts = 1 
 let g:airline_section_b = '%{strftime("%c")}'
 let g:airline_section_y = 'BN: %{bufnr("%")}'
-let g:airline#extensions#tavline#enabled = 1 
+let g:airline#extensions#tavline#enabled = 1
 ```
+
+
 
 
 
