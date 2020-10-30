@@ -143,368 +143,314 @@ epoll有EPOLLLT和EPOLLET两种触发模式，LT是默认的模式，ET是“高
 （2）select，poll每次调用都要把fd集合从用户态往内核态拷贝一次，并且要把current往设备等待队列中挂一次，而epoll只要一次拷贝，而且把current往等待队列上挂也只挂一次（在epoll_wait的开始，注意这里的等待队列并不是设备等待队列，只是一个epoll内部定义的等待队列）。这也能节省不少的开销。 
 
 ```cpp
-#include <iostream>
-#include <winsock2.h>
-#include <windows.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#define POOL_SIZE 16
 
 int main() {
-    int ret;
+    int ret, listen_fd, max_fd;
+    int conn_pool[POOL_SIZE];
+    memset(conn_pool, -1, CONN_SIZE * sizeof(int));
+    fd_set read_set;
+    timeval tv = {3, 0};
+    char bufRecv[100];
 
-    // 加载win socket
-    WSADATA ws;
-    ret = WSAStartup(MAKEWORD(2, 2), &ws);
-    if (ret != 0) {
-        printf("WSAStartup() failed!\n");
-        return -1;
-    }
+    // create listen socket fd
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(-1 != listen_fd);
+    max_fd = listen_fd;
+    conn_pool[0] = listen_fd;
 
-    // 创建侦听SOCKET
-    SOCKET sListen;
-    sListen = socket(AF_INET, SOCK_STREAM, 0);
-    if (sListen == INVALID_SOCKET) {
-        printf("socket() failed!\n");
-        return -1;
-    }
+    // create socket addr
+    struct sockaddr_in sock_addr;
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_addr.s_addr = INADDR_ANY;
+    sock_addr.sin_port = htons(8000);
 
-    // 填充服务器地址结构
-    sockaddr_in servAddr;
-    servAddr.sin_family = AF_INET;
-    servAddr.sin_addr.s_addr = INADDR_ANY;
-    servAddr.sin_port = htons(8000);
+    // bind and listen
+    ret = bind(listen_fd, (sockaddr *) &sock_addr, sizeof(sock_addr));
+    assert(-1 != ret);
+    ret = listen(listen_fd, 16);
+    assert(-1 != ret);
 
-    // 绑定服务器套接字
-    ret = bind(sListen, (sockaddr *) &servAddr, sizeof(servAddr));
-    if (ret == SOCKET_ERROR) {
-        printf("bind() failed!\n");
-        return -1;
-    }
+    // success start socket
+    printf("start socket successfully, listen on %d\n", ntohs(sock_addr.sin_port));
 
-    // 开始侦听
-    ret = listen(sListen, 5);
-    if (ret == SOCKET_ERROR) {
-        printf("listen() failed!\n");
-        return -1;
-    }
-
-    printf("start successfully, listen on %d\n", ntohs(servAddr.sin_port));
-
-    //使用select模型
-    // 创建套接字集合
-    fd_set allSockSet; // 总的套接字集合
-    fd_set readSet; // 可读套接字集合
-    fd_set writeSet; // 可写套接字集合
-
-    FD_ZERO(&allSockSet); // 清空套接字集合
-    FD_SET(sListen, &allSockSet); // 将sListen套接字加入套接字集合中
-    char bufRecv[100]; // 接收缓冲区
-
-    // 进入服务器主循环
-    while (1) {
-        FD_ZERO(&readSet); // 清空可读套接字
-        FD_ZERO(&writeSet); // 清空可写套接字
-        readSet = allSockSet; // 赋值
-        writeSet = allSockSet; // 赋值
-
-        // 调用select函数，timeout设置为NULL
-        ret = select(0, &readSet, 0, NULL, NULL);
-        if (ret == SOCKET_ERROR) {
-            printf("select() failed!\n");
-            return -1;
+    while (true) {
+        // fill all fds to read set
+        FD_ZERO(&read_set);
+        for (int i = 0; i < POOL_SIZE; ++i) {
+            if (conn_pool[i] != -1) {
+                FD_SET(conn_pool[i], &read_set);
+            }
         }
 
-        // 存在套接字的I/O已经准备好
-        if (ret > 0) {
-            // 遍历所有套接字
-            for (int i = 0; i < allSockSet.fd_count; ++i) {
-                SOCKET s = allSockSet.fd_array[i];
-                // 存在可读的套接字
-                if (FD_ISSET(s, &readSet)) {
-                    // 可读套接字为sListen
-                    if (s == sListen) {
-                        // 接收新的连接
-                        sockaddr_in clientAddr;
-                        int len = sizeof(clientAddr);
-                        SOCKET sClient = accept(s, (sockaddr *) &clientAddr, &len);
-                        // 将新创建的套接字加入到集合中
-                        FD_SET(sClient, &allSockSet);
-                        printf(">>> new connection come in\n");
-                        printf("current clients number: %d\n", allSockSet.fd_count - 1);
-                    } else // 接收客户端信息
-                    {
-                        ret = recv(s, bufRecv, 100, 0);
-                        // 接收错误
-                        if (ret == SOCKET_ERROR) {
-                            DWORD err = WSAGetLastError();
-                            if (err == WSAECONNRESET)
-                                printf("client is close force\n");
-                            else
-                                printf("recv() failed!");
-                            // 删除套接字
-                            FD_CLR(s, &allSockSet);
-                            printf("current clients number: %d\n", allSockSet.fd_count - 1);
+        // select timeout
+        tv.tv_sec = 3;
+        tv.tv_usec = 0;
+
+        // select util 3 seconds
+        ret = select(max_fd + 1, &read_set, NULL, NULL, &tv);
+        assert(-1 != ret);
+
+        // timeout
+        if (ret == 0) continue;
+
+        for (int i = 0; i < POOL_SIZE; ++i) {
+            int fd = conn_pool[i];
+            if (FD_ISSET(fd, &read_set)) {
+                if (fd == listen_fd) {
+                    // start to accept a client socket
+                    struct sockaddr_in sock_addr_client;
+                    socklen_t len = sizeof(sock_addr_client);
+                    int client_fd = accept(listen_fd, (sockaddr *) &sock_addr_client, &len);
+                    assert(-1 != client_fd);
+
+                    // fill the client socket to read set and conn pool
+                    FD_SET(client_fd, &read_set);
+                    for (int j = 0; j < POOL_SIZE; ++j) {
+                        if (conn_pool[j] == -1) {
+                            conn_pool[j] = client_fd;
                             break;
                         }
-                        if (ret == 0) {
-                            printf("client quit!\n");
-                            // 删除套接字
-                            FD_CLR(s, &allSockSet);
-                            printf("current clients number: %d\n", allSockSet.fd_count - 1);
-                            break;
+                    }
+
+                    // reset max fd
+                    max_fd = max_fd > client_fd ? max_fd : client_fd;
+                } else {
+                    // read buffer from fd
+                    ret = recv(fd, bufRecv, sizeof(bufRecv), 0);
+                    assert(-1 != ret);
+
+                    if (ret == 0) {
+                        // remove the fd from conn pool
+                        for (int j = 0; j < POOL_SIZE; ++j) {
+                            if (conn_pool[j] == fd) {
+                                conn_pool[j] = -1;
+                                break;
+                            }
                         }
-                        bufRecv[ret] = '\0';
+
+                        // clear fd from read set
+                        FD_CLR(fd, &read_set);
+
+                        printf("client quit!\n");
+                    } else {
+                        // print recv message and send ok to client
+                        bufRecv[ret - 1] = '\0';
                         printf("recv message: %s\n", bufRecv);
-                    } // end else
-
-                }// end if
-
-            }// end for
-        } // end if
-    }//end while
-    return 0;
-
+                        send(fd, "ok\n", 3, 0);
+                    }
+                }
+            }
+        }
+    }
+}
 ```
 
 
 
 ```c
-#define _GNU_SOURCE
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cassert>
 #include <unistd.h>
- 
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <poll.h>
- 
-#define NFDS 100//fds数组的大小
- 
-// 创建一个用于监听的socket  
-int CreateSocket()
-{
-	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-	assert(-1 != listenfd);
- 
-	struct sockaddr_in ser;
-	memset(&ser, 0, sizeof(ser));
-	ser.sin_family = AF_INET;
-	ser.sin_port = htons(6000);
-	ser.sin_addr.s_addr = inet_addr("127.0.0.1");
- 
-	int res =  bind(listenfd, (struct sockaddr*)&ser, sizeof(ser));
-	assert(-1 != res);
- 
-	listen(listenfd, 5);
- 
-	return listenfd;
-}
- 
-// 初始化fds结构体数组
-void InitFds(struct pollfd *fds)
-{
-	int i = 0;
-	for(; i < NFDS; ++i)
-	{
-		fds[i].fd = -1;
-		fds[i].events = 0;
-		fds[i].revents = 0;
-	}
-}
- 
-// 向fds结构体数组中插入一个文件描述符
-void InsertFd(struct pollfd *fds, int fd, int flag)//此处flag是为了判断是文件描述符c，还是listenfd，来设置events
-{
-	int i = 0;
-	for(; i < NFDS; ++i)
-	{
-		if(fds[i].fd == -1)
-		{
-			fds[i].fd = fd;
-			fds[i].events |= POLLIN; 
-			if(flag)
-			{
-				fds[i].events |= POLLRDHUP;
-			}
- 
-			break;
-		}
-	}
-}
- 
-// 从fds结构体数组中删除一个文件描述符
-void DeleteFd(struct pollfd *fds, int fd)
-{
-	int i = 0;
-	for(; i < NFDS; ++i)
-	{
-		if(fds[i].fd == fd)
-		{
-			fds[i].fd = -1;
-			fds[i].events = 0; 
-			break;
-		}
-	}
-}
- 
-// 获取一个已完成三次握手的连接
-void GetClientLink(int fd, struct pollfd *fds)
-{
-	struct sockaddr_in cli;
-	socklen_t len = sizeof(cli); 
-	int c = accept(fd, (struct sockaddr*)&cli, &len);
-	assert(c != -1);
- 
-	printf("one client link success\n");
- 
-	InsertFd(fds, c, 1);
-}
- 
-// 断开一个用户连接
-void UnlinkClient(int fd, struct pollfd *fds)
-{
-	close(fd);
-	DeleteFd(fds, fd);
-	printf("one client unlink\n");
-}
- 
-// 处理客户端发送来的数据
-void DealClientData(int fd, struct pollfd *fds)
-{
-	char  buff[128] = {0};
- 
-	int n = recv(fd, buff, 127, 0);
-	if(n <= 0)
-	{
-		UnlinkClient(fd, fds);
-		return;
-	}
- 
-	printf("%s\n", buff);
- 
-	send(fd, "ok", 2, 0);
-}
- 
-// poll返回后，处理就绪的文件描述符
-void DealFinishFd(struct pollfd *fds, int listenfd)
-{
-	int i = 0;
-	for(; i < NFDS; ++i)
-	{
-		if(fds[i].fd == -1)
-		{
-			continue;
-		}
- 
-		int fd = fds[i].fd;
-		if(fd == listenfd && fds[i].revents & POLLIN)
-		{
-			GetClientLink(fd, fds);
-			//获取连接
-		}
-		else if(fds[i].revents & POLLRDHUP)
-		{
-			UnlinkClient(fd, fds);
-			//断开连接
-		}
-		else if(fds[i].revents & POLLIN)
-		{
-			DealClientData(fd, fds);
-			//处理客户端数据
-		}
-	}
-}
- 
-int main()
-{
-	int listenfd = CreateSocket();
- 
-	struct pollfd *fds = (struct pollfd*)malloc(sizeof(struct pollfd) * NFDS);
-	//malloc一个fds结构体数组
-	assert(NULL != fds);
- 
-	InitFds(fds);
-	//初始化fds结构体数组
- 
-	InsertFd(fds, listenfd, 0);
-	//插入文件描述符listenfd
- 
- 
-	while(1)
-	{
-		int n = poll(fds, NFDS, -1);
-		if(n <= 0)
-		{
-			printf("poll error\n");
-			continue;
-		}
- 
-		DealFinishFd(fds, listenfd);
-		//处理就绪的文件描述符
-	}
- 
-	free(fds);
+
+#define POOL_SIZE 16
+
+int main() {
+    int ret, listen_fd;
+    struct pollfd *conn_pool;
+    char bufRecv[100];
+
+    // create listen socket fd
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(-1 != listen_fd);
+
+    // create socket addr
+    struct sockaddr_in sock_addr;
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_addr.s_addr = INADDR_ANY;
+    sock_addr.sin_port = htons(8000);
+
+    // bind and listen
+    ret = bind(listen_fd, (sockaddr *) &sock_addr, sizeof(sock_addr));
+    assert(-1 != ret);
+    ret = listen(listen_fd, 16);
+    assert(-1 != ret);
+
+    // success start socket
+    printf("start socket successfully, listen on %d\n", ntohs(sock_addr.sin_port));
+
+    // init pool fds
+    conn_pool = (struct pollfd *) malloc(sizeof(struct pollfd) * POOL_SIZE);
+    for (int i = 0; i < POOL_SIZE; ++i) {
+        conn_pool[i].fd = -1;
+        conn_pool[i].events = 0;
+        conn_pool[i].revents = 0;
+    }
+    conn_pool[0].fd = listen_fd;
+    conn_pool[0].events |= POLLIN;
+
+    while (true) {
+        // poll util 3 seconds
+        ret = poll(conn_pool, POOL_SIZE, 3);
+        assert(-1 != ret);
+
+        // timeout
+        if (ret == 0) continue;
+
+        for (int i = 0; i < POOL_SIZE; ++i) {
+            if (conn_pool[i].fd == -1) continue;
+
+            int fd = conn_pool[i].fd;
+
+            if (fd == listen_fd && conn_pool[i].revents & POLLIN) {
+                // start to accept a client socket
+                struct sockaddr_in sock_addr_client;
+                socklen_t len = sizeof(sock_addr_client);
+                int client_fd = accept(listen_fd, (sockaddr *) &sock_addr_client, &len);
+                assert(-1 != client_fd);
+
+                // fill the client socket to conn pool
+                for (int j = 0; j < POOL_SIZE; ++j) {
+                    if (conn_pool[j].fd == -1) {
+                        conn_pool[j].fd = client_fd;
+                        conn_pool[j].events |= POLLIN;
+                        conn_pool[j].events |= POLLRDHUP;
+                        break;
+                    }
+                }
+
+                // reset events
+                conn_pool[i].revents = 0;
+            } else if (conn_pool[i].revents & POLLRDHUP) {
+                // remove the fd from conn pool
+                conn_pool[i].fd = -1;
+                conn_pool[i].events = 0;
+                conn_pool[i].revents = 0;
+
+                printf("client quit!\n");
+            } else if (conn_pool[i].revents & POLLIN) {
+                // read buffer from fd
+                ret = recv(fd, bufRecv, sizeof(bufRecv), 0);
+                assert(-1 != ret);
+
+                if (ret > 0) {
+                    // print recv message and send ok to client
+                    bufRecv[ret - 1] = '\0';
+                    printf("recv message: %s\n", bufRecv);
+                    send(fd, "ok\n", 3, 0);
+
+                    // reset events
+                    conn_pool[i].revents = 0;
+                }
+            }
+        }
+    }
 }
 ```
 
 
 
 ```cpp
-#define MAX_EVENTS 10
-struct epoll_event ev, events[MAX_EVENTS];
-int listen_sock, conn_sock, nfds, epollfd;
+#include <cstdio>
+#include <cassert>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/epoll.h>
+#include <fcntl.h>
 
-/* Code to set up listening socket, 'listen_sock',
-              (socket(), bind(), listen()) omitted */
+#define POOL_SIZE 16
 
-// 创建epoll实例
-epollfd = epoll_create1(0);
+int main() {
+    int ret, listen_fd, epoll_fd;
+    struct epoll_event ev, events[POOL_SIZE];
+    char bufRecv[100];
 
-if (epollfd == -1) {
-    perror("epoll_create1");
-    exit(EXIT_FAILURE);
-}
+    // create listen socket fd
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(-1 != listen_fd);
 
-// 将监听的端口的socket对应的文件描述符添加到epoll事件列表中
-ev.events = EPOLLIN;
-ev.data.fd = listen_sock;
-if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-    perror("epoll_ctl: listen_sock");
-    exit(EXIT_FAILURE);
-}
+    // create socket addr
+    struct sockaddr_in sock_addr;
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_addr.s_addr = INADDR_ANY;
+    sock_addr.sin_port = htons(8000);
 
-for (;;) {
-    // epoll_wait 阻塞线程，等待事件发生
-    nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-    if (nfds == -1) {
-        perror("epoll_wait");
-        exit(EXIT_FAILURE);
-    }
+    // bind and listen
+    ret = bind(listen_fd, (sockaddr *) &sock_addr, sizeof(sock_addr));
+    assert(-1 != ret);
+    ret = listen(listen_fd, 16);
+    assert(-1 != ret);
 
-    for (n = 0; n < nfds; ++n) {
-        if (events[n].data.fd == listen_sock) {
-            // 新建的连接
-            conn_sock = accept(listen_sock, (struct sockaddr *) &addr, &addrlen);
-            // accept 返回新建连接的文件描述符
-            if (conn_sock == -1) {
-                perror("accept");
-                exit(EXIT_FAILURE);
+    // success start socket
+    printf("start socket successfully, listen on %d\n", ntohs(sock_addr.sin_port));
+
+    // init epoll, add listen fd to epoll
+    epoll_fd = epoll_create(10000);
+
+    ret = fcntl(listen_fd, F_SETFL, fcntl(listen_fd, F_GETFD, 0)|O_NONBLOCK);
+    assert(-1 != ret);
+
+    ev.events = EPOLLIN;
+    ev.data.fd = listen_fd;
+    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev);
+
+    while (true) {
+        // poll util 3 seconds
+        ret = epoll_wait(epoll_fd, events, POOL_SIZE, 3);
+        assert(-1 != ret);
+
+        // timeout
+        if (ret == 0) continue;
+
+        for (int i = 0; i < ret; ++i) {
+            int fd = events[i].data.fd;
+
+            if (fd == listen_fd && events[i].events & EPOLLIN) {
+                // start to accept a client socket
+                struct sockaddr_in sock_addr_client;
+                socklen_t len = sizeof(sock_addr_client);
+                int client_fd = accept(listen_fd, (sockaddr *) &sock_addr_client, &len);
+                assert(-1 != client_fd);
+
+                // set non block
+                ret = fcntl(client_fd, F_SETFL, fcntl(client_fd, F_GETFD, 0)|O_NONBLOCK);
+                assert(-1 != ret);
+
+                ev.events = EPOLLIN | EPOLLET;
+                ev.data.fd = client_fd;
+
+                epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev);
+            } else if (events[i].events & EPOLLIN) {
+                // read buffer from fd
+                ret = recv(fd, bufRecv, sizeof(bufRecv), 0);
+                assert(-1 != ret);
+
+                if (ret == 0) {
+                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+                    close(fd);
+
+                    printf("client quit!\n");
+                } else {
+                    // print recv message and send ok to client
+                    bufRecv[ret - 1] = '\0';
+                    printf("recv message: %s\n", bufRecv);
+                    send(fd, "ok\n", 3, 0);
+                }
             }
-            setnonblocking(conn_sock);
-            // setnotblocking 将该文件描述符置为非阻塞状态
-
-            ev.events = EPOLLIN | EPOLLET;
-            ev.data.fd = conn_sock;
-            // 将该文件描述符添加到epoll事件监听的列表中，使用ET模式
-            if (epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_sock, &ev) == -1)
-                perror("epoll_ctl: conn_sock");
-            exit(EXIT_FAILURE);
         }
-    } else {
-        // 使用已监听的文件描述符中的数据
-        do_use_fd(events[n].data.fd);
     }
 }
 ```

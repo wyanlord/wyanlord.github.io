@@ -248,6 +248,39 @@ let g:airline#extensions#tavline#enabled = 1
 
 
 
+#### 四、安装c语言编译环境
+
+```
+sudo apt install libssl-dev
+
+wget https://cmake.org/files/v3.15/cmake-3.15.3.tar.gz
+tar -xf cmake-3.15.3.tar.gz
+cd cmake-3.15.3
+./configure
+make
+sudo make install
+sudo ln -s /usr/local/bin/cmake /usr/bin/cmake
+```
+
+```cpp
+sudo apt install texinfo
+
+wget https://ftp.gnu.org/gnu/termcap/termcap-1.3.1.tar.gz
+tar -xf termcap-1.3.1.tar.gz
+cd termcap-1.3.1
+./configure
+make
+sudo make install
+
+wget http://mirrors.ustc.edu.cn/gnu/gdb/gdb-10.1.tar.gz
+tar -xf gdb-10.1.tar.gz
+cd gdb-10.1
+./configure
+make
+sudo make install
+sudo ln -s /usr/local/bin/gdb /usr/bin/gdb
+```
+
 
 
 
