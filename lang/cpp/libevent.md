@@ -58,19 +58,17 @@ c）C端确认SYN=1， ACK=1，校验ACKnumber正确，再次向S端发送ACK=1�
 
 a）select==>时间复杂度O(n)
 
-它仅仅知道了，有I/O事件发生了，却并不知道是哪那几个流（可能有一个，多个，甚至全部），我们只能无差别轮询所有流，找出能读出数据，或者写入数据的流，对他们进行操作。所以**select具有O(n)的无差别轮询复杂度**，同时处理的流越多，无差别轮询时间就越长。
+**select具有O(n)的无差别轮询复杂度**，同时处理的流越多，无差别轮询时间就越长。所有操作系统都有。
 
 b）poll==>时间复杂度O(n)
 
-poll本质上和select没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态， **但是它没有最大连接数的限制**，原因是它是基于链表来存储的.
+poll本质上和select没有区别， **但是它没有最大连接数的限制**，传入的数组不用置零可重用。Linux独有的机制。
 
 c）epoll==>时间复杂度O(1)
 
-**epoll可以理解为event poll**，不同于忙轮询和无差别轮询，epoll会把哪个流发生了怎样的I/O事件通知我们。所以我们说epoll实际上是**事件驱动（每个事件关联上fd）**的，此时我们对这些流的操作都是有意义的。**（复杂度降低到了O(1)）**
+epoll是**事件驱动（每个事件关联上fd）**，此时我们对这些流的操作都是有意义的。Linux独有的机制。
 
-select，poll，epoll都是IO多路复用的机制。I/O多路复用就通过一种机制，可以监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。**但select，poll，epoll本质上都是同步I/O，因为他们都需要在读写事件就绪后自己负责进行读写，也就是说这个读写过程是阻塞的**，而异步I/O则无需自己负责进行读写，异步I/O的实现会负责把数据从内核拷贝到用户空间。 
 
-epoll跟select都能提供多路I/O复用的解决方案。在现在的Linux内核里有都能够支持，其中epoll是Linux所特有，而select则应该是POSIX所规定，一般操作系统均有实现。
 
 **select：**
 
@@ -78,11 +76,11 @@ select本质上是通过设置或者检查存放fd标志位的数据结构来进
 
 1、 单个进程可监视的fd数量被限制，即能监听端口的大小有限。
 
-   一般来说这个数目和系统内存关系很大，具体数目可以cat /proc/sys/fs/file-max察看。32位机默认是1024个。64位机默认是2048.
+  	 一般来说这个数目和系统内存关系很大，具体数目可以cat /proc/sys/fs/file-max察看。32位机默认是1024个。64位机默认是2048.
 
 2、 对socket进行扫描时是线性扫描，即采用轮询的方法，效率较低：
 
-​    当套接字比较多的时候，每次select()都要通过遍历FD_SETSIZE个Socket来完成调度,不管哪个Socket是活跃的,都遍历一遍。这会浪费很多CPU时间。如果能给套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的。
+​    	当套接字比较多的时候，每次select()都要通过遍历FD_SETSIZE个Socket来完成调度,不管哪个Socket是活跃的,都遍历一遍。这会浪费很多CPU时间。如果能给套接字注册某个回调函数，当他们活跃时，自动完成相关操作，那就避免了轮询，这正是epoll与kqueue做的。
 
 3、需要维护一个用来存放大量fd的数据结构，这样会使得用户空间和内核空间在传递该结构时复制开销大
 
@@ -90,7 +88,7 @@ select本质上是通过设置或者检查存放fd标志位的数据结构来进
 
 poll本质上和select没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个fd对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有fd后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历fd。这个过程经历了多次无谓的遍历。
 
-**它没有最大连接数的限制**，原因是它是基于链表来存储的，但是同样有一个缺点：
+缺点：
 
 1、大量的fd的数组被整体复制于用户态和内核地址空间之间，而不管这样的复制是不是有意义。          
 
@@ -141,6 +139,8 @@ epoll有EPOLLLT和EPOLLET两种触发模式，LT是默认的模式，ET是“高
 （1）select，poll实现需要自己不断轮询所有fd集合，直到设备就绪，期间可能要睡眠和唤醒多次交替。而epoll其实也需要调用epoll_wait不断轮询就绪链表，期间也可能多次睡眠和唤醒交替，但是它是设备就绪时，调用回调函数，把就绪fd放入就绪链表中，并唤醒在epoll_wait中进入睡眠的进程。虽然都要睡眠和交替，但是select和poll在“醒着”的时候要遍历整个fd集合，而epoll在“醒着”的时候只要判断一下就绪链表是否为空就行了，这节省了大量的CPU时间。这就是回调机制带来的性能提升。
 
 （2）select，poll每次调用都要把fd集合从用户态往内核态拷贝一次，并且要把current往设备等待队列中挂一次，而epoll只要一次拷贝，而且把current往等待队列上挂也只挂一次（在epoll_wait的开始，注意这里的等待队列并不是设备等待队列，只是一个epoll内部定义的等待队列）。这也能节省不少的开销。 
+
+1、使用select的例子
 
 ```cpp
 #include <cstdio>
@@ -254,7 +254,7 @@ int main() {
 }
 ```
 
-
+2、使用poll的例子
 
 ```c
 #include <cstdio>
@@ -360,7 +360,7 @@ int main() {
 }
 ```
 
-
+3、使用epoll的例子
 
 ```cpp
 #include <cstdio>
@@ -457,7 +457,7 @@ int main() {
 
 
 
-#### 二、libevent编译
+#### 二、libevent编译与示例
 
 ```cmd
 export CFLAGS=-I/usr/xxx/include
@@ -467,134 +467,96 @@ make
 make install
 ```
 
-#### 三、使用示例
-
 ```ini
 cmake_minimum_required(VERSION 3.15)
 project(libevdemo)
 
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(D:/MyCode/libs/libevent/include)
-link_directories(D:/MyCode/libs/libevent/lib)
-
 add_executable(libevdemo main.cpp)
-target_link_libraries(libevdemo event ws2_32)
+target_link_libraries(libevdemo event)
 ```
-
-
 
 ```cpp
 #include <cstdio>
-#include <winsock2.h>
-#include <event2/event.h>
-#include <event2/bufferevent.h>
-#include <ctime>
 #include <cassert>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <event2/event.h>
+#include <evrpc.h>
 
-# define LISTEN_PORT 9999
-# define LISTEN_BACKLOG 32
-
-void do_accept(evutil_socket_t listener, short event, void *arg);
-
-void read_cb(struct bufferevent *bev, void *arg);
-
-void error_cb(struct bufferevent *bev, short event, void *arg);
-
-void write_cb(struct bufferevent *bev, void *arg);
-
-int main(int argc, char *argv[]) {
-    int ret;
-
-    // init windows wsa
-    WSAData data;
-    ret = WSAStartup(MAKEWORD(2, 2), &data);
-    assert(ret == 0);
-
-    // create socket listener
-    evutil_socket_t listener;
-    listener = socket(AF_INET, SOCK_STREAM, 0);
-    assert(listener > 0);
-    evutil_make_listen_socket_reuseable(listener);
-
-    // create socket addr
-    struct sockaddr_in sin;
-    sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = 0;
-    sin.sin_port = htons(LISTEN_PORT);
-
-    // bind socket with socket addr
-    if (bind(listener, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-        perror("bind");
-        return 1;
+void error_cb(struct bufferevent *bev, short event, void *arg) {
+    int fd = bufferevent_getfd(bev);
+    if (event & BEV_EVENT_TIMEOUT) {
+        printf("FD: %d, Timed out\n", fd);
+    } else if (event & BEV_EVENT_EOF) {
+        printf("FD: %d, client quit!\n", fd);
+    } else if (event & BEV_EVENT_ERROR) {
+        printf("FD: %d, some other error\n", fd);
     }
-
-    // listen some port
-    if (listen(listener, LISTEN_BACKLOG) < 0) {
-        perror("listen");
-        return 1;
-    }
-
-    printf("Listening...\n");
-
-    evutil_make_socket_nonblocking(listener);
-
-    struct event_base *base = event_base_new();
-    assert(base != NULL);
-    struct event *listen_event;
-    listen_event = event_new(base, listener, EV_READ | EV_PERSIST, do_accept, (void *) base);
-    event_add(listen_event, NULL);
-    event_base_dispatch(base);
-
-    printf("The End.");
-    return 0;
+    bufferevent_free(bev);
 }
 
-void do_accept(evutil_socket_t listener, short event, void *arg) {
-    struct event_base *base = (struct event_base *) arg;
-    evutil_socket_t fd;
-    struct sockaddr_in sin;
-    socklen_t slen = sizeof(sin);
-    fd = accept(listener, (struct sockaddr *) &sin, &slen);
-    if (fd < 0) {
-        perror("accept");
-        return;
-    }
+void read_cb(struct bufferevent *bev, void *arg) {
+    char bufRecv[100];
 
-    printf("ACCEPT: fd = %u\n", fd);
+    int ret = bufferevent_read(bev, bufRecv, sizeof(bufRecv));
+    assert(-1 != ret);
 
-    struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    bufRecv[ret - 1] = '\0';
+    printf("recv message: %s\n", bufRecv);
+    bufferevent_write(bev, "ok\n", 3);
+}
+
+void do_accept(int listen_fd, short event, void *arg) {
+    // start to accept a client socket
+    struct sockaddr_in sock_addr_client;
+    socklen_t len = sizeof(sock_addr_client);
+    int client_fd = accept(listen_fd, (sockaddr *) &sock_addr_client, &len);
+    assert(-1 != client_fd);
+
+    // add client fd to event list
+    struct bufferevent *bev = bufferevent_socket_new((struct event_base *) arg, client_fd, BEV_OPT_CLOSE_ON_FREE);
     bufferevent_setcb(bev, read_cb, NULL, error_cb, arg);
     bufferevent_enable(bev, EV_READ | EV_WRITE | EV_PERSIST);
 }
 
-void read_cb(struct bufferevent *bev, void *arg) {
-# define MAX_LINE    256
-    char line[MAX_LINE + 1];
-    int n;
-    evutil_socket_t fd = bufferevent_getfd(bev);
+int main() {
+    int ret, listen_fd;
 
-    while (n = bufferevent_read(bev, line, MAX_LINE), n > 0) {
-        line[n] = '\0';
-        printf("fd=%u, read line: %s\n", fd, line);
+    // create listen socket fd
+    listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    assert(-1 != listen_fd);
 
-        bufferevent_write(bev, line, n);
-    }
-}
+    // create socket addr
+    struct sockaddr_in sock_addr;
+    sock_addr.sin_family = AF_INET;
+    sock_addr.sin_addr.s_addr = INADDR_ANY;
+    sock_addr.sin_port = htons(8000);
 
-void write_cb(struct bufferevent *bev, void *arg) {}
+    // bind and listen
+    ret = bind(listen_fd, (sockaddr *) &sock_addr, sizeof(sock_addr));
+    assert(-1 != ret);
+    ret = listen(listen_fd, 16);
+    assert(-1 != ret);
 
-void error_cb(struct bufferevent *bev, short event, void *arg) {
-    evutil_socket_t fd = bufferevent_getfd(bev);
-    printf("fd = %u, ", fd);
-    if (event & BEV_EVENT_TIMEOUT) {
-        printf("Timed out\n"); // if bufferevent_set_timeouts() called
-    } else if (event & BEV_EVENT_EOF) {
-        printf("connection closed\n");
-    } else if (event & BEV_EVENT_ERROR) {
-        printf("some other error\n");
-    }
-    bufferevent_free(bev);
+    // success start socket
+    printf("start socket successfully, listen on %d\n", ntohs(sock_addr.sin_port));
+
+    // init epoll, add listen fd to epoll
+    evutil_make_socket_nonblocking(listen_fd);
+
+    struct event_base *base = event_base_new();
+    assert(base != NULL);
+
+    struct event *listen_event = event_new(base, listen_fd, EV_READ | EV_PERSIST, do_accept, (void *) base);
+    assert(listen_event != NULL);
+
+    event_add(listen_event, NULL); // timeout must be NULL, or accept return -1
+    event_base_dispatch(base);
+    event_base_free(base);
+    return 0;
 }
 ```
 
