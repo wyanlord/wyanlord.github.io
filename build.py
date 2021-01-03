@@ -4,7 +4,7 @@ import os
 
 def read_home():
     ctx = '* 首页' + "\n"
-    ctx += '  *[笔记说明](/README.md)' + "\n"
+    ctx += '  * [笔记说明](/README.md)' + "\n"
     return ctx
 
 

@@ -1,5 +1,5 @@
 * 首页
-  *[笔记说明](/README.md)
+  * [笔记说明](/README.md)
 * Cpp语言
   * [10大排序算法](/lang/cpp/10大排序算法.md)
   * [clion开发qt](/lang/cpp/clion开发qt.md)
