@@ -8,6 +8,8 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <link rel="stylesheet" href="/js/docsify/lib/themes/vue.css">
+    <link rel="stylesheet" href="/js/docsify/lib/themes/sidebar-folder.min.css">
+    <!--    <link rel="stylesheet" href="/js/docsify/lib/themes/sidebar.min.css">-->
 
 </head>
 <body>
@@ -21,8 +23,13 @@
         coverpage: true,
         onlyCover: true,
         subMaxLevel: 2,
+        auto2top: true,
         alias: {
-          "/.*/_sidebar.md": "/_sidebar.md",
+            "/.*/_sidebar.md": "/_sidebar.md",
+        },
+        toc: {
+            tocMaxLevel: 5,
+            target: "h2, h3, h4, h5, h6",
         },
         formatUpdated: '{YYYY}-{MM}-{DD}',
         plugins: [
@@ -39,10 +46,38 @@
             placeholder: '查询',
             noData: '没有数据',
             depth: 3
-        }
+        },
+        pagination: {
+            previousText: "上一页",
+            nextText: "下一页",
+            crossChapter: true,
+            crossChapterText: true,
+        },
+        count: {
+            countable: true,
+            position: "top",
+            margin: "10px",
+            float: "right",
+            fontsize: "0.9em",
+            color: "red",
+            language: "chinese",
+            localization: {
+                words: "",
+                minute: "",
+            },
+            isExpected: true,
+        },
     }
 </script>
 <script src="/js/docsify/lib/docsify.min.js"></script>
+<script src="/js/docsify/lib/docsify-tabs.min.js"></script>
+<script src="/js/docsify/lib/docsify-copy-code.min.js"></script>
+<script src="/js/docsify/lib/docsify-pagination.min.js"></script>
+<script src="/js/docsify/lib/external-script.min.js"></script>
+<script src="/js/docsify/lib/countable.min.js"></script>
+<script src="/js/docsify/lib/docsify-sidebar-collapse.min.js"></script>
+<script src="/js/docsify/lib/docsify-plugin-toc.min.js"></script>
+<script src="/js/docsify/lib/emoji.min.js"></script>
 <script src="/js/docsify/lib/plugins/search.js"></script>
 <script src="/js/prismjs/components/prism-bash.js"></script>
 <script src="/js/prismjs/components/prism-c.js"></script>
@@ -51,5 +86,7 @@
 <script src="/js/prismjs/components/prism-go.js"></script>
 <script src="/js/prismjs/components/prism-rust.js"></script>
 <script src="/js/prismjs/components/prism-python.js"></script>
+<script src="/js/prismjs/components/prism-docker.min.js"></script>
+<script src="/js/prismjs/components/prism-powershell.min.js"></script>
 </body>
 </html>
