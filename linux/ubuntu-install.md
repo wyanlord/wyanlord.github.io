@@ -281,6 +281,186 @@ sudo make install
 sudo ln -s /usr/local/bin/gdb /usr/bin/gdb
 ```
 
+#### 五、安装常用的软件
+
+1、安装docker
+
+```shell
+sudo apt-get remove docker docker-engine docker-ce docker.io
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-cache madison docker-ce
+sudo apt-get install docker-ce=<VERSION>
+
+sudo systemctl status docker
+sudo systemctl start docker
+sudo docker run hello-world
+
+#vim /etc/docker/daemon.json
+{
+  "registry-mirrors": ["https://ohbxz313.mirror.aliyuncs.com"],
+  "insecure-registries": []
+}
+
+sudo gpasswd -a ${USER} docker
+sudo service docker restart
+sudo chmod a+rw /var/run/docker.sock
+
+sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+2、安装alphine
+
+```shell
+docker pull alpine:3.10
+// 更新apline为国内源
+sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+```
+
+3、安装openresty
+
+```
+docker pull openresty/openresty:alpine
+
+mkdir -p /opt/docker/nginx/conf.d /opt/docker/nginx/logs
+
+docker run --name tmp-nginx -d openresty/openresty:alpine
+docker cp tmp-nginx:/usr/local/openresty/nginx/conf/nginx.conf /opt/docker/nginx/nginx.conf
+docker cp tmp-nginx:/etc/nginx/conf.d/default.conf /opt/docker/nginx/conf.d/www.conf
+docker rm -f tmp-nginx
+
+version: "3" 
+services:
+  nginx:
+    container_name: nginx
+    image: openresty/openresty:alpine
+    restart: always
+    ports:
+      - 80:80
+    volumes:
+      - /opt/docker/html:/var/www/html
+      - /opt/docker/nginx/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf
+      - /opt/docker/nginx/conf.d:/etc/nginx/conf.d
+      - /opt/docker/nginx/logs:/usr/local/openresty/nginx/logs
+    working_dir: /var/www/html
+```
+
+4、安装crontab
+
+```shell
+docker run -dit --name cront-task alpine:3.10 /usr/sbin/crond -f -L /var/log/crond.log
+```
+
+5、安装redis
+
+```shell
+version: '3'
+services:
+  redis:
+    container_name: redis
+    image: redis:5.0.10-alpine3.12
+    restart: always
+    volumes:
+      - /opt/docker/redis:/data
+    ports:
+      - 6379:6379
+```
+
+6、安装mysql
+
+```shell
+version: '3'
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:8.0.23
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+      - /opt/docker/mysql/data:/var/lib/mysql
+	  - /opt/docker/mysql/conf:/etc/mysql/conf.d
+	  - /opt/docker/mysql/logs:/logs
+	environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - 3306:3306
+```
+
+7、安装kafka
+
+```shell
+version: '3'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    ports:
+     - 2181:2181
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafka:
+    image: wurstmeister/kafka:latest
+    ports:
+      - 9092:9092
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_HOST_NAME=192.168.1.128
+      - KAFKA_ADVERTISED_PORT=9092
+    links:
+      - zookeeper
+    volumes:
+      - /opt/docker/kafka/etc/localtime:/etc/localtime
+```
+
+8、安装rabbitMQ
+
+```shell
+version: '3' 
+
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.8.11-alpine
+    restart: always
+    volumes:
+        - /opt/docker/rabbitmq:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    ports:
+      - 5672:5672
+      - 15672:15672
+```
+
+9、安装ELK
+
+> grep vm.max_map_count /etc/sysctl.conf
+>
+> vm.max_map_count=262144
+>
+> sysctl -w vm.max_map_count=262144
+
+```
+version: '3' 
+
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    image: elasticsearch:7.1.1
+    restart: always
+    volumes:
+      - /opt/docker/elasticsearch/data:/usr/share/elasticsearch/data
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - discovery.type=single-node
+    ports:
+      - 9200:9200
+      - 9300:9300
+```
+
 
 
 

@@ -1,3 +1,0 @@
-# CentOs Install
-
-> Test good
