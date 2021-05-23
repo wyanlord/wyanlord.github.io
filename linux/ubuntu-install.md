@@ -390,7 +390,7 @@ services:
       - 3306:3306
 ```
 
-7、安装kafka
+7、安装zookeeper+kafka
 
 ```shell
 version: '3'
@@ -401,18 +401,45 @@ services:
      - 2181:2181
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+  zookeeper-ui:
+    container_name: zookeeper-ui
+    image: juris/zkui:latest
+    restart: always
+    environment:
+      - ZK_SERVER=zookeeper:2181
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+    ports:
+      - 9090:9090
   kafka:
     image: wurstmeister/kafka:latest
     ports:
       - 9092:9092
     environment:
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_ADVERTISED_HOST_NAME=192.168.1.128
+      - KAFKA_ADVERTISED_HOST_NAME=192.168.200.128
       - KAFKA_ADVERTISED_PORT=9092
     links:
       - zookeeper
+    depends_on:
+      - zookeeper
     volumes:
       - /opt/docker/kafka/etc/localtime:/etc/localtime
+  kafka-manager:
+    container_name: kafka-manager
+    image: sheepkiller/kafka-manager:latest
+    restart: always
+    environment:
+      - ZK_HOSTS=zookeeper:2181
+      - APPLICATION_SECRET=123456
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+    ports:
+      - 9000:9000
 ```
 
 8、安装rabbitMQ
@@ -435,7 +462,7 @@ services:
       - 15672:15672
 ```
 
-9、安装ELK
+9、安装ELK+Kibana
 
 > grep vm.max_map_count /etc/sysctl.conf
 >
@@ -459,6 +486,18 @@ services:
     ports:
       - 9200:9200
       - 9300:9300
+  kibana:
+    container_name: kibana
+    image: kibana:7.1.1
+    restart: always
+    environment:
+      - ELASTICSEARCH_URL:elasticsearch:9200
+    links:
+      - elasticsearch
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
 ```
 
 
