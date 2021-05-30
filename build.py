@@ -34,9 +34,21 @@ def read_linux():
     return ctx
 
 
+def read_algorithm():
+    ctx = ''
+    ctx += '* 算法' + "\n"
+    lang_dirs = os.listdir('./algorithm/')
+    if 'README.md' in lang_dirs:
+        ctx += '  * [算法导读](' + '/algorithm/README.md)' + "\n"
+    for lang_dir in lang_dirs:
+        if lang_dir != 'README.md':
+            ctx += '  * [' + lang_dir[0:-3] + '](' + '/algorithm/' + lang_dir + ')' + "\n"
+    return ctx
+
+
 def write_sidebar(ctx):
     with codecs.open('_sidebar.md', 'w', 'utf-8') as file_object:
         file_object.write(ctx)
 
 
-write_sidebar(read_home() + read_lang() + read_linux())
+write_sidebar(read_home() + read_lang() + read_linux() + read_algorithm())
